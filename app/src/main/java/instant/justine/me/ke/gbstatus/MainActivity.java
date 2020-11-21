@@ -141,6 +141,7 @@ public class MainActivity extends AppCompatActivity {
 					}
 				});
 			}
+			img.setElevation(5.0f);
 		    img.setImageBitmap(bitmap);
 			img.setTag(f);
 			img.setBackground(getResources().getDrawable(R.drawable.shape));
@@ -250,8 +251,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
-            case R.id.settings:
-                
+            case R.id.about:
                 return true;
             default:
                 return super.onOptionsItemSelected(item);
