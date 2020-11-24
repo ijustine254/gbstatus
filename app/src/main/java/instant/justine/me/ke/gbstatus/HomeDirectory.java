@@ -1,4 +1,5 @@
 package instant.justine.me.ke.gbstatus;
+
 import android.os.Environment;
 
 import java.io.File;
@@ -26,4 +27,11 @@ class HomeDirectory {
     public String getAppHome() {
         return appHome;
     }
+	
+	public boolean hasStatus() {
+		if (new File(this.whatsappHome).exists()) {
+			return true;
+		}
+		return false;
+	}
 }

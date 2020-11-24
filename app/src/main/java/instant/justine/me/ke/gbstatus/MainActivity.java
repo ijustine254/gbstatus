@@ -12,7 +12,7 @@ import android.graphics.BitmapFactory;
 import android.media.Image;
 import android.os.Build;
 import android.os.Environment;
-import android.support.annotation.NonNull;;
+import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AlertDialog;
@@ -30,6 +30,20 @@ import java.io.*;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
+import android.graphics.*;
+import android.view.*;
+import android.view.View.*;
+import android.widget.*;
+import android.widget.Toolbar.*;
+import android.util.*;
+import java.util.*;
+import java.text.*;
+import android.provider.*;
+
+import static instant.justine.me.ke.gbstatus.AllStatus.vid_exts;
+import android.media.*;
+import android.app.*;
+import android.net.*;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -39,7 +53,6 @@ public class MainActivity extends AppCompatActivity {
     private String app_home;
     private final String TAG = "gbstatus";
     private SharedPreferences preferences;
-    private TextView files_holder;
     private InputStream is = null;
     private OutputStream os = null;
     private AllStatus allStatus;
@@ -47,8 +60,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        files_holder = (TextView) findViewById(R.id.files_string);
-        preferences = getSharedPreferences("appData", MODE_PRIVATE);
+        preferences = getSharedPreferences("data", MODE_PRIVATE);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             if (!preferences.contains("read") && !preferences.contains("write")) {
                 requestForPermission();
@@ -64,38 +76,97 @@ public class MainActivity extends AppCompatActivity {
     private void app () {
         ActionBar bar = getSupportActionBar();
         Objects.requireNonNull(bar).setTitle(R.string.home);
-        app_home = Environment.getExternalStorageDirectory().toString();
-        String home = app_home+"/WhatsApp/Media/.Statuses";
-        allStatus = new AllStatus(home);
-        File file = new File(home);
-        files_holder.setText(allStatus.getStatusString());
-        Boolean isHomeMade = new HomeDirectory().createHome();
-        if (allStatus.getStatus() != null) {
-            SharedPreferences.Editor e = preferences.edit();
-            e.putInt("count", allStatus.count());
-            Set<String> set = new HashSet<>(allStatus.getStatus());
-            e.putStringSet("status_set", set);
-            e.apply();
-        }
-        int count = 0;
-	    LinearLayout ll = (LinearLayout) findViewById(R.id.container);
-	    for (String p:allStatus.getStatus() ) {
-		    if (count > 4) break;
+		final HomeDirectory home_dir = new HomeDirectory();
+		if (!home_dir.hasStatus()) {
+			Toast toast = Toast.makeText(this, "Check if WhatsApp is Installed", Toast.LENGTH_LONG);
+			toast.setGravity(Gravity.CENTER, 0, 0);
+			toast.show();
+			return;
+		}
+		home_dir.createHome();
+		allStatus = new AllStatus(home_dir.getStatusPage());
+		LinearLayout ll = (LinearLayout) findViewById(R.id.container);
+	    for (final String p:allStatus.getStatus() ) {
 		    LinearLayout l1 = new LinearLayout(this);
 		    ImageView img = new ImageView(this);
 		    LinearLayout.LayoutParams img_params = new LinearLayout.LayoutParams(
-				    ViewGroup.LayoutParams.WRAP_CONTENT,
+				    ViewGroup.LayoutParams.MATCH_PARENT,
 				    ViewGroup.LayoutParams.WRAP_CONTENT
 		    );
+			img_params.setMargins(10,15, 10, 15);
+			img_params.setLayoutDirection(LinearLayout.VERTICAL);
 		    img.setLayoutParams(img_params);
-		    Bitmap bitmap = BitmapFactory.decodeFile(home+"/"+p);
+			final String f = home_dir.getStatusPage()+"/"+p;
+		    Bitmap bitmap = BitmapFactory.decodeFile(f);
+			String ex = f.substring(f.lastIndexOf(".")+1);
+			boolean isVideo = false;
+			for (String ext: vid_exts) {
+				if (ext.equals(ex)) {
+					isVideo = true;
+					int kind = MediaStore.Video.Thumbnails.MINI_KIND;
+					bitmap = ThumbnailUtils.createVideoThumbnail(f,kind);
+					break;
+				}
+			}
+			if (isVideo) {
+				img.setOnClickListener(new View.OnClickListener() {
+					@Override 
+					public void onClick(View view) {
+						final Dialog dialog = new Dialog(context);
+						dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
+						dialog.setContentView(R.layout.vid);
+						dialog.setCanceledOnTouchOutside(true);
+						dialog.show();
+						WindowManager.LayoutParams lp = new WindowManager.LayoutParams(
+							LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT);
+						lp.copyFrom(dialog.getWindow().getAttributes());
+						dialog.getWindow().setAttributes(lp);
+						final VideoView videoview = (VideoView) dialog.findViewById(R.id.vid_container);
+						videoview.setVideoPath(f);
+						videoview.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
+							@Override
+							public void onCompletion(MediaPlayer p1){
+								dialog.dismiss();
+							}
+						});
+						dialog.findViewById(R.id.vidButton).setOnClickListener(new OnClickListener(){
+							@Override 
+							public void onClick(View view) {
+								save(f, home_dir);
+							}
+						});
+						videoview.setKeepScreenOn(true);
+						videoview.setZOrderOnTop(true);
+						videoview.start();
+					}
+				});
+			}
+			img.setElevation(5.0f);
 		    img.setImageBitmap(bitmap);
+			img.setTag(f);
+			img.setBackground(getResources().getDrawable(R.drawable.shape));
+			img.setOnLongClickListener(new OnLongClickListener(){
+				@Override
+				public boolean onLongClick(View view) {
+					save(f, home_dir);
+					return true;
+				}
+			});
+			img.setPadding(10,10,10,10);
+			l1.setBackgroundColor(Color.rgb(209,226,210));
+			l1.setGravity(Gravity.CENTER);
 		    l1.addView(img);
 		    ll.addView(l1);
-		    count++;
 	    }
 
     }
+	
+	private void save(String src, HomeDirectory home_dir) {
+		String t = new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss", Locale.getDefault()).format(new Date());
+		String ext = src.substring(src.lastIndexOf("."));
+		new FileEngine().copy(src, home_dir.getAppHome()+"/GBSTATUS-"+t+ext);
+		Toast.makeText(MainActivity.this, "Saved!", Toast.LENGTH_LONG).show();
+	}
 
     @SuppressLint("NewApi")
     private void requestForPermission() {
@@ -180,12 +251,18 @@ public class MainActivity extends AppCompatActivity {
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
-            case R.id.settings:
-                //Intent intent = new Intent(this, Setttings.class);
-                //startActivity(intent);
+            case R.id.about:
                 return true;
             default:
                 return super.onOptionsItemSelected(item);
         }
     }
+
+	@Override
+	public void onBackPressed()
+	{
+		super.onBackPressed();
+		finish();
+		System.exit(0);
+	}
 }
