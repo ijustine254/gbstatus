@@ -6,7 +6,7 @@
 	<string name="title">Permission is required</string>
 	<string name="fetch">Permission is used to fetch status</string>
 	<string name="create">Permission is used to gbstatus folder</string>
-	<string name="settings">Settings</string>
+	<string name="about">About</string>
 	<string name="Stop_service">Stop Auto Download</string>
 	<string name="home">Home</string>
 </resources>
