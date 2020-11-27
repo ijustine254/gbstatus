@@ -26,6 +26,7 @@ class FileEngine {
                 while ((length = is.read(buffer)) > 0) {
                     os.write(buffer, 0, length);
                 }
+				os.flush();
             } catch (IOException e) {
                 e.printStackTrace();
             } finally {

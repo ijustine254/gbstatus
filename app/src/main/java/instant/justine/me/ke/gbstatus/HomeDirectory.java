@@ -4,18 +4,19 @@ import android.os.Environment;
 
 import java.io.File;
 
+
 class HomeDirectory {
     private String appHome;
     private String whatsappHome;
     HomeDirectory() {
         String dir = Environment.getExternalStorageDirectory().toString();
         this.appHome = dir+"/Pictures/gbstatus/";
-        this.whatsappHome = dir+"/WhatsApp/Media/.Statuses/";
+		this.whatsappHome = dir+"/WhatsApp/Media/.Statuses/";
     }
     Boolean createHome() {
-        File file = new File(this.appHome);
+		File file = new File(this.appHome);
         if (!file.exists()) {
-            return file.mkdirs();
+			return file.mkdirs();
         } else {
             return false;
         }
