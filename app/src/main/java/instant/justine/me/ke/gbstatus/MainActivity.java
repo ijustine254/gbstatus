@@ -9,6 +9,7 @@ import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Color;
 import android.media.Image;
 import android.os.Build;
 import android.os.Environment;
@@ -25,48 +26,42 @@ import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
-
-import java.io.*;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
-import android.graphics.*;
-import android.view.*;
-import android.view.View.*;
-import android.widget.*;
-import android.widget.Toolbar.*;
-import android.util.*;
-import java.util.*;
-import java.text.*;
-import android.provider.*;
+import android.view.Gravity;
+import android.view.WindowManager;
+import android.view.Window;
+import android.view.View;
+import android.view.View.OnClickListener;
+import android.view.View.OnLongClickListener;
+import android.widget.Toast;
+import android.widget.VideoView;
+import android.widget.Toolbar.LayoutParams;
+import java.util.Locale;
+import java.util.Date;
+import java.text.SimpleDateFormat;
+import android.provider.MediaStore;
+import android.media.ThumbnailUtils;
+import android.media.MediaPlayer;
+import android.app.Dialog;
+
 
 import static instant.justine.me.ke.gbstatus.AllStatus.vid_exts;
-import android.media.*;
-import android.app.*;
-import android.net.*;
+
 
 public class MainActivity extends AppCompatActivity {
 
     private final int READ_SDCARD_CODE = 1;
     private final int WRITE_SDCARD_CODE = 2;
     private final Context context = MainActivity.this;
-    private String app_home;
-    private final String TAG = "gbstatus";
-    private SharedPreferences preferences;
-    private InputStream is = null;
-    private OutputStream os = null;
     private AllStatus allStatus;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        preferences = getSharedPreferences("data", MODE_PRIVATE);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            if (!preferences.contains("read") && !preferences.contains("write")) {
-                requestForPermission();
-            } else {
-                app();
-            }
+            requestForPermission();
         } else {
             app();
         }
@@ -141,7 +136,6 @@ public class MainActivity extends AppCompatActivity {
 					}
 				});
 			}
-			img.setElevation(5.0f);
 		    img.setImageBitmap(bitmap);
 			img.setTag(f);
 			img.setBackground(getResources().getDrawable(R.drawable.shape));
@@ -170,7 +164,7 @@ public class MainActivity extends AppCompatActivity {
 
     @SuppressLint("NewApi")
     private void requestForPermission() {
-        if (ActivityCompat.checkSelfPermission(context, Manifest.permission.READ_EXTERNAL_STORAGE) !=
+		if (ActivityCompat.checkSelfPermission(context, Manifest.permission.READ_EXTERNAL_STORAGE) !=
                 PackageManager.PERMISSION_GRANTED) {
             if (shouldShowRequestPermissionRationale(Manifest.permission.READ_EXTERNAL_STORAGE)) {
                 showDialog(
@@ -191,7 +185,12 @@ public class MainActivity extends AppCompatActivity {
             } else {
                 requestPermissions(new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, WRITE_SDCARD_CODE);
             }
-        }
+        } 
+		if ((ActivityCompat.checkSelfPermission(context, Manifest.permission.WRITE_EXTERNAL_STORAGE) ==
+			PackageManager.PERMISSION_GRANTED) && (ActivityCompat.checkSelfPermission(context, Manifest.permission.READ_EXTERNAL_STORAGE) ==
+			PackageManager.PERMISSION_GRANTED) ) {
+				app();
+		}
     }
 
     private void showDialog (String title, String msg) {
@@ -207,6 +206,8 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(DialogInterface dialogInterface, int i) {
                 dialogInterface.dismiss();
+				finish();
+				System.exit(1);
             }
         }).create()
                 .show();
@@ -223,20 +224,18 @@ public class MainActivity extends AppCompatActivity {
             if (
                     grantResults.length > 0 &&
                     grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                SharedPreferences.Editor editor = preferences.edit();
-                editor.putString("read", "allowed");
-                editor.apply();
-            }
+            } else {
+				requestPermissions(new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, READ_SDCARD_CODE);
+			}
         }
         if (requestCode == READ_SDCARD_CODE) {
 
             if (
                     grantResults.length > 0 &&
                     grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                SharedPreferences.Editor editor = preferences.edit();
-                editor.putString("write", "allowed");
-                editor.apply();
-            }
+				} else {
+					requestPermissions(new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, WRITE_SDCARD_CODE);
+				}
         }
 
     }
